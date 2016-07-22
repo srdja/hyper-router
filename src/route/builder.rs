@@ -1,9 +1,11 @@
 use Route;
-use Handler;
+use hyper::server::Handler;
+
 
 pub struct RouteBuilder {
     route: Route
 }
+
 
 impl RouteBuilder {
     pub fn new(route: Route) -> RouteBuilder {
@@ -15,9 +17,8 @@ impl RouteBuilder {
     /// Completes the building process by taking the handler to process the request.
     ///
     /// Returns created route.
-    pub fn using(mut self, handler: Handler) -> Route {
-        self.route.handler = handler;
+    pub fn using<T: 'static + Handler>(mut self, handler: T) -> Route {
+        self.route.handler = Box::new(handler);
         self.route
     }
 }
-

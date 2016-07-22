@@ -8,8 +8,8 @@
 //!
 //! ## Usage
 //!
-//! To use the library just add: 
-//! 
+//! To use the library just add:
+//!
 //! ```text
 //! hyper-router = "*"
 //! ```
@@ -53,7 +53,7 @@
 //! * `Path::new` method accepts regular expressions so you can match every path you please.
 //! * If you have request matching multiple paths the one that was first `add`ed will be chosen.
 //! * This library is in an early stage of development so there may be breaking changes comming
-//! (but I'll try as hard as I can not to break backwards compatibility or break it just a little - 
+//! (but I'll try as hard as I can not to break backwards compatibility or break it just a little -
 //! I promise I'll try!).
 //!
 //! # Waiting for your feedback
@@ -66,9 +66,11 @@
 
 extern crate hyper;
 use hyper::uri::RequestUri::AbsolutePath;
-use hyper::server::{Request, Response};
+use hyper::server::{self, Request, Response};
 use hyper::status::StatusCode;
 use hyper::method::Method;
+
+use std::ops::Deref;
 
 mod path;
 pub mod route;
@@ -80,43 +82,84 @@ pub use self::route::Route;
 pub use self::route::RouteBuilder;
 pub use self::builder::RouterBuilder;
 
-pub type Handler = fn(Request, Response);
+use hyper::server::Handler;
+
 pub type HttpResult<T> = Result<T,StatusCode>;
 
 /// This is the one. The router.
 #[derive(Debug)]
 pub struct Router {
-    routes: Vec<Route>
+    routes: Vec<Route>,
 }
 
+impl Handler for Router {
+    fn handle<'a, 'b>(&'a self, req: Request<'a, 'b>, res: Response<'a>) {
+        if let AbsolutePath(req_path) = req.uri.clone() {
+            match self.find_route(&req_path, &req.method) {
+                Ok(route) => {
+                    route.handler.deref().handle(req, res);
+                },
+                Err(e) => {
+                    match e {
+                        StatusCode::MethodNotAllowed => {handlers::method_not_supported_handler(req, res);}
+                        StatusCode::NotFound => {handlers::default_404_handler(req, res);}
+                        _ => {handlers::internal_server_error_handler(req, res);}
+                    }
+                }
+            }
+        }
+    }
+}
+
+
 impl Router {
+    pub fn find_route(&self, path: &str, method: &Method) -> Result<&Route, StatusCode> {
+        let routes: Vec<&Route> = self.routes.iter()
+            .filter(|route| {
+                route.path.matcher.is_match(&path)
+            }).collect();
+        if !routes.is_empty() {
+            match routes.iter().find(|r| r.method == *method) {
+                Some(route) => Ok(route),
+                None => Err(StatusCode::MethodNotAllowed)
+            }
+        } else {
+            Err(StatusCode::NotFound)
+        }
+    }
+}
+
+    /*
     /// Finds handler for given Hyper request.
     ///
     /// This method uses default error handlers.
     /// If the request does not match any route than default 404 handler is returned.
     /// If the request match some routes but http method does not match (used GET but routes are
     /// defined for POST) than default method not supported handler is returned.
-    pub fn find_handler_with_defaults(&self, request: &Request) -> Handler {
+    pub fn find_handler_with_defaults(&self, request: &Request) -> Box<Handler> {
         if let AbsolutePath(request_path) = request.uri.clone() {
             let matching_routes = self.find_matching_routes(&request_path);
             match matching_routes.len() {
-                x if x <= 0 => handlers::default_404_handler,
+                x if x <= 0 => Box::new(handlers::Default404Handler{}),
                 _ => {
                     self.find_for_method(&matching_routes, &request.method)
-                        .unwrap_or(handlers::method_not_supported_handler)
+                        .unwrap_or(Box::new(handlers::method_not_supported_handler))
                 }
             }
         } else {
-            handlers::not_implemented_handler
+            Box::new(handlers::not_implemented_handler)
         }
     }
+*/
 
+
+/*
     /// Finds handler for given Hyper request.
     ///
-    /// It returns handler if it's found or `StatusCode` for error. 
-    /// This method may return `NotFound`, `MethodNotAllowed` or `NotImplemented` 
+    /// It returns handler if it's found or `StatusCode` for error.
+    /// This method may return `NotFound`, `MethodNotAllowed` or `NotImplemented`
     /// status codes.
-    pub fn find_handler(&self, request: &Request) -> HttpResult<Handler> {
+    pub fn find_handler(&self, request: &Request) -> HttpResult<Box<Handler>> {
         if let AbsolutePath(request_path) = request.uri.clone() {
             let matching_routes = self.find_matching_routes(&request_path);
             match matching_routes.len() {
@@ -131,7 +174,11 @@ impl Router {
             Err(StatusCode::NotImplemented)
         }
     }
+*/
 
+
+
+/*
     /// Returns vector of `Route`s that match to given path.
     pub fn find_matching_routes(&self, request_path: &str) -> Vec<&Route> {
         self.routes.iter()
@@ -140,11 +187,15 @@ impl Router {
             })
             .collect()
     }
-
-    fn find_for_method(&self, routes: &Vec<&Route>, method: &Method) -> Option<Handler> {
+*/
+/*
+    fn find_for_method<'a>(&'a self, routes: &Vec<&'a Route>, method: &Method) -> Option<Box<Handler>> {
         let method = method.clone();
-        routes.iter()
-            .find(|route| route.method == method)
-            .map(|route| route.handler)
+//        routes.iter()
+//            .find(|route| route.method == method)
+        //            .map(|route| route.handler)
+
+        Some(Box::new(handlers::Default404Handler{}))
     }
-}
+
+} */

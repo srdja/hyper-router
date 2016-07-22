@@ -1,9 +1,10 @@
 use hyper::method::Method;
 use handlers;
 use std::fmt;
+use std::boxed::Box;
 
 use Path;
-use Handler;
+use hyper::server::Handler;
 use super::RouteBuilder;
 
 /// Holds route information
@@ -24,8 +25,8 @@ pub struct Route {
     /// fn hello_handler(_: Request, res: Response) {
     ///   res.send(b"Hello World").unwrap();
     /// }
-    /// ``` 
-    pub handler: Handler
+    /// ```
+    pub handler: Box<Handler>,
 }
 
 impl Route {
@@ -79,7 +80,7 @@ impl Default for Route {
         Route {
             method: Method::Get,
             path: Path::new("/"),
-            handler: handlers::not_implemented_handler
+            handler: Box::new(handlers::not_implemented_handler)
         }
     }
 }
