@@ -66,7 +66,7 @@
 
 extern crate hyper;
 use hyper::uri::RequestUri::AbsolutePath;
-use hyper::server::{self, Request, Response};
+use hyper::server::{Request, Response};
 use hyper::status::StatusCode;
 use hyper::method::Method;
 
@@ -87,10 +87,15 @@ use hyper::server::Handler;
 pub type HttpResult<T> = Result<T,StatusCode>;
 
 /// This is the one. The router.
-#[derive(Debug)]
+// #[derive(Debug)]
 pub struct Router {
     routes: Vec<Route>,
+    handler_404: Box<Handler>,
+    handler_405: Box<Handler>,
+    handler_500: Box<Handler>,
+    handler_501: Box<Handler>,
 }
+
 
 impl Handler for Router {
     fn handle<'a, 'b>(&'a self, req: Request<'a, 'b>, res: Response<'a>) {
@@ -101,12 +106,20 @@ impl Handler for Router {
                 },
                 Err(e) => {
                     match e {
-                        StatusCode::MethodNotAllowed => {handlers::method_not_supported_handler(req, res);}
-                        StatusCode::NotFound => {handlers::default_404_handler(req, res);}
-                        _ => {handlers::internal_server_error_handler(req, res);}
+                        StatusCode::MethodNotAllowed => {
+                            self.handler_405.handle(req, res);
+                        }
+                        StatusCode::NotFound => {
+                            self.handler_404.handle(req, res);
+                        }
+                        _ => {
+                            self.handler_500.handle(req, res);
+                        }
                     }
                 }
             }
+        } else {
+            self.handler_501.handle(req, res);
         }
     }
 }
