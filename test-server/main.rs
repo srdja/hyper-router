@@ -38,19 +38,4 @@ fn main() {
     Server::http("0.0.0.0:8080").unwrap()
         .handle(router).unwrap();
 
-
-//        .handle(move |req: Request, res: Response| {
-//            router.handle(req, res);
-//        }).unwrap();
-
-    /*
-    Server::http("0.0.0.0:8080").unwrap()
-        .handle(move |request: Request, response: Response| {
-            match router.find_handler(&request) {
-                Ok(handler) => handler(request, response),
-                Err(StatusCode::NotFound) => response.send(b"not found").unwrap(),
-                Err(_) => response.send(b"some error").unwrap(),
-            }
-        }).unwrap();
-*/
 }
