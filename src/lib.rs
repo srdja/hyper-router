@@ -89,11 +89,11 @@ pub type HttpResult<T> = Result<T,StatusCode>;
 /// This is the one. The router.
 // #[derive(Debug)]
 pub struct Router {
-    routes: Vec<Route>,
-    handler_404: Box<Handler>,
-    handler_405: Box<Handler>,
-    handler_500: Box<Handler>,
-    handler_501: Box<Handler>,
+    pub routes: Vec<Route>,
+    pub handler_404: Box<Handler>,
+    pub handler_405: Box<Handler>,
+    pub handler_500: Box<Handler>,
+    pub handler_501: Box<Handler>,
 }
 
 
